@@ -1,0 +1,8 @@
+mapping_node:
+  ros__parameters:
+    min_distance_to_match: 0.2
+    num_iterations: 30
+    use_reciprocal: false
+    normal_search_radius: 0.1
+    icp_method: p2plane
+    occupancy_grid_resolution: 0.025

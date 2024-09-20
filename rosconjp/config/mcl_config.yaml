@@ -1,0 +1,17 @@
+mcl_node:
+  ros__parameters:
+    # mcl parameters
+    odom_noise_a1: 4.0
+    odom_noise_a2: 4.0
+    odom_noise_a3: 10.0
+    odom_noise_a4: 10.0
+    resample_thresh: 0.5
+    # likelihood field model parameters
+    lfm_sigma: 0.1
+    map_resolution: 0.5
+    z_max: 0.05
+    z_rand: 0.05
+    z_hit: 0.9
+    scan_step: 5
+    # global localization parameters
+    use_global_localization: true

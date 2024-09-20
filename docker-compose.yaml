@@ -1,0 +1,46 @@
+version: "2.4"
+
+services:
+  base:
+    image: "${URL}:${TAG}"
+    network_mode: "host"
+    ipc: "host"
+    pid: "host"
+    init: true
+    privileged: true
+    environment:
+      - MODE
+      - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - ROS_LOG_DIR=/tmp
+      - USER_ID
+      - GROUP_ID
+    volumes:
+      - "/dev/shm:/dev/shm"
+      - "./rosconjp:/rosconjp"
+      - "./docker/ws:/docker/ws"
+      - "./resources:/resources"
+    user: "${USER_ID}:${GROUP_ID}"
+    command: >
+      /bin/bash -c "source /docker/ws/install/setup.bash; ros2 launch rosconjp start.launch.py mode:=${MODE} map_directory:=${TARGET_MAP_DIRECTORY} "
+  visualize:
+    image: "${URL}:${TAG}"
+    network_mode: "host"
+    ipc: "host"
+    pid: "host"
+    init: true
+    privileged: true
+    environment:
+      - MODE
+      - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - ROS_LOG_DIR=/tmp
+      - DISPLAY=$DISPLAY
+      - USER_ID
+      - GROUP_ID
+    volumes:
+      - "/dev/shm:/dev/shm"
+      - "./rosconjp:/rosconjp"
+      - "./docker/ws:/docker/ws"
+    user: "${USER_ID}:${GROUP_ID}"
+    command: /bin/bash -c "source /docker/ws/install/setup.bash; rviz2 -d /docker/ws/src/rosconjp/rviz/${MODE}.rviz"

@@ -1,0 +1,19 @@
+version: "2.4"
+
+services:
+  ros2_bridge:
+    image: "asia-northeast1-docker.pkg.dev/kachaka-api/docker/kachaka-grpc-ros2-bridge:${ROS2_BRIDGE_TAG}"
+    network_mode: "host"
+    ipc: "host"
+    pid: "host"
+    environment:
+      - API_GRPC_BRIDGE_SERVER_URI
+      - ROS_DOMAIN_ID
+      - ROS_LOCALHOST_ONLY
+      - ROS_LOG_DIR=/tmp
+      - RMW_IMPLEMENTATION
+      - USER_ID
+      - GROUP_ID
+    user: "${USER_ID}:${GROUP_ID}"
+    command: >
+      ros2 launch kachaka_grpc_ros2_bridge grpc_ros2_bridge.launch.xml server_uri:=${API_GRPC_BRIDGE_SERVER_URI}
