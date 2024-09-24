@@ -28,20 +28,10 @@ class OdometryNode(Node):  # type: ignore
             return
 
         # 1. calculate dt
-        dt = (current_time.nanoseconds - self._last_odom_time.nanoseconds) / 1e9
 
         # 2. calculate relative pose from the last update
-        vx = odom_msg.twist.twist.linear.x  # x
-        vy = odom_msg.twist.twist.linear.y  # y
-        va = odom_msg.twist.twist.angular.z  # angular around z axis
-        relative_pose = Pose2d(
-            x=vx * dt,
-            y=vy * dt,
-            yaw=va * dt,
-        )
 
         # 3. accumulate relative pose with the current odom pose
-        self._odom_pose = self._odom_pose.multiply(relative_pose)
 
         # publish
         self._pose_pub.publish(

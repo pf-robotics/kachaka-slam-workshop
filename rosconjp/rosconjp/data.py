@@ -93,17 +93,6 @@ class Scan:
 
 def scan_to_points2d(scan: Scan, setting: ScanSetting) -> Points2d:
     # scanデータを点群へ変換する
-    def _calc_yaw(index: int) -> float:
-        return setting.angle_min + setting.angle_increment * index
-
-    points = np.stack(
-        [
-            r * np.array([np.cos(_calc_yaw(i)), np.sin(_calc_yaw(i))])
-            for i, r in enumerate(scan.ranges)
-            if r > setting.range_min and r < setting.range_max
-        ]
-    )
+    pass
     # lidarの座標系からbase_footprint座標系へ変換する
-    points = scan.laser_to_base_pose.transform(points)
-
-    return Points2d(points)
+    pass

@@ -67,19 +67,17 @@ class MCLLikelihoodFieldModel:
 
         var = self._config.lfm_sigma**2
         norm = 1.0 / math.sqrt(2.0 * math.pi * var)
-        p_max = 1.0 / map_resolution
-        p_rand = 1.0 / (self._scan_config.range_max / map_resolution)
+        # p_max = ...
+        # p_rand = ...
 
-        transform_mat = particle.pose.mat() @ scan.laser_to_base_pose.mat()
+        transform_mat = particle.pose.mat() @ scan.transform.mat()
         w = 0.0
         index = 0
         while index < len(scan.ranges):
             r = scan.ranges[index]
             if r < self._scan_config.range_min or self._scan_config.range_max < r:
-                # rが範囲外
-                inc = np.log(
-                    self._config.z_max * p_max + self._config.z_rand * p_rand
-                )
+                # inc = ...
+                pass
             else:
                 a = (
                     self._scan_config.angle_min
@@ -94,22 +92,15 @@ class MCLLikelihoodFieldModel:
 
                 if map_value == DistanceMap.INVALID_VALUE:
                     # 距離画像の値が不正値
-                    inc = math.log(self._config.z_rand * p_rand)
+                    # inc = ...
+                    pass
                 else:
-                    p_hit = (
-                        norm
-                        * math.exp(-(map_value * map_value) / (2.0 * var))
-                        * map_resolution
-                    )
-                    p = self._config.z_hit * p_hit + self._config.z_rand * p_rand
-                    p = min(p, 1.0)
-                    inc = np.log(p)
-
-            # pの積がlog(p)の和に変換される
-            w += inc
+                    # inc = ...
+                    pass
+            # w = ...
             index += self._config.scan_step
 
-        return np.exp(w)
+        # return w
 
 
 class MCL:
@@ -151,26 +142,7 @@ class MCL:
         """
         パーティクルをオドメトリ情報を元に移動させる
         """
-        d_dist2 = movement.d_dist**2
-        d_rot2 = movement.d_rot**2
-
-        for i in range(len(self._particles)):
-            sampled_dist = self._rng.normal(
-                movement.d_dist,
-                self._mcl_params.odom_noise_a1 * d_dist2
-                + self._mcl_params.odom_noise_a2 * d_rot2,
-            )
-            sampled_yaw = self._rng.normal(
-                movement.d_rot,
-                self._mcl_params.odom_noise_a3 * d_dist2
-                + self._mcl_params.odom_noise_a4 * d_rot2,
-            )
-
-            # next particle pose
-            yaw = self._particles[i].pose.yaw
-            self._particles[i].pose.x += sampled_dist * np.cos(yaw)
-            self._particles[i].pose.y += sampled_dist * np.sin(yaw)
-            self._particles[i].pose.yaw += sampled_yaw
+        pass
 
     def weigh_particles(self, scan: Scan) -> None:
         """
@@ -193,23 +165,6 @@ class MCL:
         """
         姿勢を推定
         """
-        tmp_yaw = (
-            0.0 if self._last_estimated_pose is None else self._last_estimated_pose.yaw
-        )
-        pose = Pose2d(x=0.0, y=0.0, yaw=0.0)
-        for p in self._particles:
-            pose.x += p.pose.x * p.weight
-            pose.y += p.pose.y * p.weight
-            d_yaw = tmp_yaw - p.pose.yaw
-            while d_yaw < -np.pi:
-                d_yaw += 2.0 * np.pi
-            while d_yaw > np.pi:
-                d_yaw -= 2.0 * np.pi
-            pose.yaw += d_yaw * p.weight
-
-        pose.yaw = tmp_yaw - pose.yaw
-        self._last_estimated_pose = pose
-
         return pose
 
     def resample(self) -> None:
@@ -219,17 +174,5 @@ class MCL:
         th = len(self._particles) * self._mcl_params.resample_thresh
         if self._effective_sample_size > th:
             return
-        # 実装
-        cum_weights = np.cumsum([particle.weight for particle in self._particles])
-        tmp_particles = copy.deepcopy(self._particles)
 
-        wo = 1.0 / len(self._particles)
-        for i in range(len(self._particles)):
-            # 0~1の乱数
-            darts = self._rng.uniform()
-            for j in range(len(self._particles)):
-                # 生成した乱数が対応するパーティクルjをとってくる
-                if darts < cum_weights[j]:
-                    self._particles[i].pose = copy.copy(tmp_particles[j].pose)
-                    self._particles[i].weight = wo
-                    break
+        # resampling

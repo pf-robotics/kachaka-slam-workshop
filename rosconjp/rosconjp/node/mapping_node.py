@@ -105,39 +105,9 @@ class MappingNode(Node):  # type: ignore
         """
         地図を更新するための関数
         """
-        # 現在の補正項 (_odom_to_map) を用いて、bf_to_mapを一旦計算
-        suggest_bf_to_map = self._odom_to_map.multiply(self._odom_pose)
+        # 推定された姿勢によって、scan_pointsをmap座標系に投影
 
-        # voxel grid mapの点群
-        map_points = Points2d(
-            np.stack(
-                [cell.point2d for cell in self._accumulated_map.voxel_map.values()]
-            )
-        )
-
-        # 現在のbf_to_mapを初期姿勢に、mapの点群にscan点群を重ね合わせた時の姿勢変換を推定
-        estimated_bf_to_map, scan_points_on_map = self._icp.estimate(
-            scan_points, map_points, suggest_bf_to_map
-        )
-
-        # 推定した姿勢変換で、姿勢の補正項（odom -> map）を更新
-        self._odom_to_map = estimated_bf_to_map.multiply(self._odom_pose.inv())
-
-        # 推定した姿勢変換で地図を更新
-        for p in scan_points_on_map:
-            self._accumulated_map.add(p)
-
-        # 画像特徴を推定姿勢とともに登録
-        if self._image_feature is not None:
-            self._image_map.add(estimated_bf_to_map, self._image_feature)
-
-        # occupancy grid mapを更新するためのスキャンと姿勢のリストを更新
-        self._pose_with_points_list.append(
-            PoseWithPoints2d(
-                pose=estimated_bf_to_map,
-                points=scan_points,
-            ),
-        )
+        # TODO: 画像特徴を推定姿勢とともに登録 (後で実装)
 
         # 状態をpublish
         self._state_publisher.publish(
@@ -152,7 +122,7 @@ class MappingNode(Node):  # type: ignore
                 "map",
             ),
             pose=pose2d_to_pose_stamped_msg(
-                estimated_bf_to_map, "map", self.get_clock().now().to_msg()
+                estimated_bf_to_odom, "map", self.get_clock().now().to_msg()
             ),
         )
 
@@ -161,11 +131,7 @@ class MappingNode(Node):  # type: ignore
         scanのコールバック関数
         """
         # laser_frame（LiDARの基準）とbase_footprint（ロボットの基準）の変換（固定）を取得
-        laser_to_base = get_static_pose(
-            "base_footprint", "laser_frame", extra_prefix="mcl_"
-        )
-        if laser_to_base is None:
-            return
+        # laser_to_base = ...
 
         # scanトピックをscan点群（base_footprint座標系）へ変換
         scan, scan_setting = laser_scan_msg_to_scan_and_setting(scan_msg, laser_to_base)
@@ -187,30 +153,12 @@ class MappingNode(Node):  # type: ignore
             return
 
         # 速度情報と、前回にscanコールバック関数が呼ばれた時間から、相対的な移動を推定
-        dt = (scan_time.nanoseconds - self._last_scan_time_nanoseconds) / 1e9
-        vx = self._last_odom.twist.twist.linear.x
-        vy = self._last_odom.twist.twist.linear.y
-        va = self._last_odom.twist.twist.angular.z
-        odom = Pose2d(
-            x=vx * dt,
-            y=vy * dt,
-            yaw=va * dt,
-        )
-        # ICPを使って、オドメトリによる相対的な移動を補正
-        current_to_last, _ = self._icp.estimate(
-            scan_points, self._last_scan_points, odom
-        )
+        # odom = ...
+        # TODO: ICPを使って、オドメトリによる相対的な移動を補正 (後で実装)
 
         # 相対的な移動変換を累積する
-        self._odom_pose = self._odom_pose.multiply(current_to_last)
 
         # 地図の更新
-        if (
-                self._last_map_updated_nanoseconds is None
-                or scan_time.nanoseconds - self._last_map_updated_nanoseconds > 1.0e9
-        ):
-            self._update_map(scan_points)
-            self._last_map_updated_nanoseconds = scan_time.nanoseconds
 
         self._last_scan_points = scan_points
         self._last_scan_time_nanoseconds = int(scan_time.nanoseconds)
@@ -225,10 +173,7 @@ class MappingNode(Node):  # type: ignore
         """
         画像のコールバック関数
         """
-        bridge = CvBridge()
-        image = bridge.compressed_imgmsg_to_cv2(image_msg)
-        image_feature = extract_image_feature(image)
-        self._image_feature = image_feature
+        pass
 
     def _on_save_map(
         self,
@@ -238,14 +183,6 @@ class MappingNode(Node):  # type: ignore
         """
         画像を保存するサービスのコールバック関数
         """
-        self._occupancy_grid_map_publisher.publish(
-            np.stack(
-                [cell.point2d for cell in self._accumulated_map.voxel_map.values()]
-            ),
-            self._pose_with_points_list,
-        )
-        self._map_saver.save(Path(request.output_dir), self._image_map)
-
         response.success = True
         return response
 

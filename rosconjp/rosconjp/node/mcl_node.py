@@ -95,16 +95,6 @@ class MCLNode(Node):  # type: ignore
         self._state_publisher = MCLStatePublisher(self)
 
         # image map
-        self._image_map: SearchableImageMap | None = None
-        if (
-            self.get_parameter("use_global_localization")
-            .get_parameter_value()
-            .bool_value
-        ):
-            image_map_dir = Path(
-                self.get_parameter("image_map_dir").get_parameter_value().string_value
-            )
-            self._image_map = load_image_map(image_map_dir).create_searchable_map()
 
         # last states
         self._last_scan_time: Optional[Time] = None
@@ -222,8 +212,7 @@ class MCLNode(Node):  # type: ignore
         """
         画像のコールバック関数
         """
-        bridge = CvBridge()
-        self._last_image = bridge.compressed_imgmsg_to_cv2(image_msg)
+        pass
 
     def _initialpose_callback(self, initialpose: PoseWithCovarianceStamped) -> None:
         """
@@ -249,15 +238,6 @@ class MCLNode(Node):  # type: ignore
             return response
 
         self.get_logger().info("Into global localization")
-        image_feature = extract_image_feature(self._last_image)
-
-        pose = self._image_map.search(image_feature)
-        if pose is None:
-            response.success = False
-            response.message = "image search is failed"
-            return response
-
-        self._model.initialize(pose)
 
         response.success = True
         response.message = ""
